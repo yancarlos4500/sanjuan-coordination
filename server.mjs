@@ -49,11 +49,7 @@ io.on('connection', (socket) => {
 // ---- Serve built client from /dist ----
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
-
-// ✅ Express 5-friendly SPA fallback (no route pattern)
-app.use((req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+app.use((_, res) => res.sendFile(path.join(distPath, 'index.html'))); // SPA fallback
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`✅ Server + Socket.IO on :${PORT}`));

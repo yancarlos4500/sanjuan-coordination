@@ -77,8 +77,11 @@ const LANE_FIXES: Partial<Record<LaneKey, string[]>> = {
   "New York": ["DAWIN", "OBIKE", "SOCCO", "OPAUL", "KEEKA", "CHEDR", "HANCY", "FERNA", "KINCH"],
 };
 
+const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const SOCKET_URL =
-  (import.meta as any)?.env?.VITE_SOCKET_URL || "http://localhost:5175";
+  isLocal
+    ? (import.meta as any)?.env?.VITE_SOCKET_URL || "http://localhost:5175"
+    : window.location.origin; // <-- prod uses same origin (Railway URL)
 
 /* ===========================
    Helpers (formatting)
