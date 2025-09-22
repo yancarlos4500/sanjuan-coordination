@@ -43,6 +43,7 @@ interface BoardItemFields {
   estimate: string; // HHMM
   altitude: string; // FL###
   mach: string;     // M##
+  squawk: string;  // transponder / squawk code
 }
 
 interface BoardItem extends BoardItemFields {
@@ -144,6 +145,8 @@ function useVatsimPilots() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      console.log(data);
+      
       const list: VatsimPilot[] = (data?.pilots || []).map((p: any) => ({
         callsign: p.callsign,
         altitude: p.altitude ?? 0,
@@ -238,19 +241,16 @@ function useRealtimeSync(
 /* ===========================
    Sortable Card
 =========================== */
-function SortableCard({
-  id,
-  laneKey,
-  item,
-  onChange,
-  onDelete,
-}: {
+type SortableCardProps = {
   id: string;
   laneKey: LaneKey;
   item: BoardItem;
   onChange: (patch: Partial<BoardItemFields>) => void;
   onDelete: () => void;
-}) {
+  [key: string]: any; // allow extra props like `key` from JSX
+};
+
+function SortableCard({ id, laneKey, item, onChange, onDelete }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
@@ -259,6 +259,37 @@ function SortableCard({
     transition,
     opacity: isDragging ? 0.85 : 1,
   };
+
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    const fix = item.waypoint || "—";
+    const estimate = item.estimate || "—";
+    const altitude = item.altitude || "—";
+    const squawk = item.squawk || "—";
+    const text = `${item.callsign} ${fix} ${estimate} ${altitude} ${squawk}`;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // fallback for older browsers
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      // ignore copy errors silently
+      console.error("copy failed", e);
+    }
+  }
 
   // Waypoint choices (hidden entirely on Unassigned)
   const showFix = laneKey !== "Unassigned";
@@ -274,9 +305,12 @@ function SortableCard({
     <div ref={setNodeRef} style={style} className="card dark-card">
       <div className="card-top" {...attributes} {...listeners}>
         <div className="callsign">{item.callsign}</div>
-        <button className="remove" onClick={onDelete}>
-          Remove
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="copy" onClick={handleCopy}>{copied ? "Copied!" : "Copy"}</button>
+          <button className="remove" onClick={onDelete}>
+            Remove
+          </button>
+        </div>
       </div>
 
       <div className="grid">
@@ -340,19 +374,16 @@ function SortableCard({
 /* ===========================
    Lane (droppable)
 =========================== */
-function Lane({
-  laneKey,
-  ids,
-  items,
-  onPatch,
-  onDelete,
-}: {
+type LaneProps = {
   laneKey: LaneKey;
   ids: string[];
   items: Record<string, BoardItem>;
   onPatch: (id: string, patch: Partial<BoardItemFields>) => void;
   onDelete: (id: string) => void;
-}) {
+  [key: string]: any;
+};
+
+function Lane({ laneKey, ids, items, onPatch, onDelete }: LaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: laneKey });
 
   return (
@@ -416,7 +447,7 @@ export default function App() {
   // ---- CRUD ----
   function addPilotToUnassigned(p: VatsimPilot) {
     // Only one card per callsign across all lanes
-    const exists = Object.values(state.items).some(
+    const exists = (Object.values(state.items) as BoardItem[]).some(
       (x) => x.callsign.toLowerCase() === p.callsign.toLowerCase()
     );
     if (exists) return;
@@ -430,6 +461,7 @@ export default function App() {
       estimate: "",
       altitude: fmtFL(p.flight_plan?.altitude || String(p.altitude || "")),
       mach: "",
+  squawk: (p as any)?.flight_plan?.assigned_transponder || "",
       routeWaypoints: parseWaypointsFromRoute(p.flight_plan?.route ?? ""),
     };
 
@@ -623,6 +655,7 @@ body{margin:0}
 .card-top{display:flex;align-items:center;justify-content:space-between}
 .callsign{font-weight:800;letter-spacing:.2px;cursor:grab}
 .remove{font-size:11px;border:1px solid rgba(239,68,68,.35);color:#fecaca;background:rgba(239,68,68,.12);padding:6px 10px;border-radius:999px;cursor:pointer}
+.copy{font-size:11px;border:1px solid rgba(96,165,250,.25);color:#cfe1ff;background:rgba(96,165,250,.08);padding:6px 10px;border-radius:999px;cursor:pointer}
 .grid{display:grid;gap:10px;margin-top:10px}
 @media(min-width:740px){.grid{grid-template-columns:repeat(4,1fr)}}
 .label{display:block;font-size:11px;color:#b7c6e0;margin-bottom:4px}
