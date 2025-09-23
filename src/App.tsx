@@ -72,10 +72,10 @@ const DEFAULT_LANES: Record<LaneKey, string[]> = {
 };
 
 const LANE_FIXES: Partial<Record<LaneKey, string[]>> = {
-  Curacao: ["SCAPA"],
-  Maiquetia: ["ARMUR", "MILOK", "KIKER"],
-  Piarco: ["ANADA", "GEECE", "ILURI", "MODUX", "GABAR", "ZPATA", "ELOPO", "LAMKN"],
-  "New York": ["DAWIN", "OBIKE", "SOCCO", "OPAUL", "KEEKA", "CHEDR", "HANCY", "FERNA", "KINCH"],
+  Curacao: ["Select","SCAPA"],
+  Maiquetia: ["Select","ARMUR", "MILOK", "KIKER"],
+  Piarco: ["Select","ANADA", "GEECE", "ILURI", "MODUX", "GABAR", "ZPATA", "ELOPO", "LAMKN"],
+  "New York": ["Select","DAWIN", "OBIKE", "SOCCO", "OPAUL", "KEEKA", "CHEDR", "HANCY", "FERNA", "KINCH"],
 };
 
 const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
